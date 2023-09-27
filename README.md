@@ -1,0 +1,1 @@
+/e2open/home/mkronvold/.bash.d/sync/.bin/README.md
