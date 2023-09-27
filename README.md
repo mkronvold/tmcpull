@@ -17,6 +17,6 @@ list all clusters by version
 add --csv for csv output
 add --csv --look to convert csv to a table (that is markdown compatible)
 
-assumes you've already logged into tmc via api token.  Try '''tanzu login'''
+assumes you've already logged into tmc via api token.  Try `tanzu login`
 
-feel free to make suggestions for other tables that the command '''tanzu mission-control --help''' can pull
+feel free to make suggestions for other tables that the command `tanzu mission-control --help` can pull
