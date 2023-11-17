@@ -25,6 +25,7 @@ CSVGREP=cat
 CSVCUT=$(which csvcut || die "csvkit not found.  Install with: sudo pip install csvkit" )
 GREPNAMES=
 GREP=
+REGEX=
 COLUMN=1
 work=
 DRYRUN=
@@ -64,6 +65,10 @@ do
       ;;
     "--grep="* )
       GREP="${opt#*=}"
+      MKCSV=1
+      ;;
+    "--regex="* )
+      REGEX="${opt#*=}"
       MKCSV=1
       ;;
     "--column="* )
@@ -135,6 +140,7 @@ case "$work" in
   "listtkr" )
     debug "attempting to list tkrs of all tkcs"
     [ $GREP ] && CSVGREP="csvgrep -c $COLUMN -m $GREP" || CSVGREP=cat
+    [ $REGEX ] && CSVGREP="csvgrep -c $COLUMN -r $REGEX"
     [ $GREPNAMES ] && CSVGREP="csvgrep -n"
     if [ $MKCSV ]; then
       if [ $SAVE ]; then
@@ -151,11 +157,13 @@ case "$work" in
   "counttkr" )
     debug "attempting to count tkrs of all tkcs"
     [ $GREP ] && CSVGREP="csvgrep -c $COLUMN -m $GREP" || CSVGREP=cat
+    [ $REGEX ] && CSVGREP="csvgrep -c $COLUMN -r $REGEX"
     tanzu mission-control cluster list -o json | jq -r '.clusters[] | "\(.fullName.name) \(.spec.tkgServiceVsphere.distribution.version)"' | awk -F+ '{print $1}' | sed -e 's/\ /,/g' | $CSVGREP | csvstat -c 2 --freq --freq-count 25 | jq | sort | grep :
     ;;
   "listtkc" )
     debug "attempting to list tkc details"
     [ $GREP ] && CSVGREP="csvgrep -c $COLUMN -m $GREP" || CSVGREP=cat
+    [ $REGEX ] && CSVGREP="csvgrep -c $COLUMN -r $REGEX"
     [ $GREPNAMES ] && CSVGREP="csvgrep -n"
     if [ $MKCSV ]; then
       if [ $SAVE ]; then
@@ -172,6 +180,7 @@ case "$work" in
   "listtns" )
     debug "attempting to list all tns by tkc"
     [ $GREP ] && CSVGREP="csvgrep -c $COLUMN -m $GREP" || CSVGREP=cat
+    [ $REGEX ] && CSVGREP="csvgrep -c $COLUMN -r $REGEX"
     [ $GREPNAMES ] && CSVGREP="csvgrep -n"
     if [ $MKCSV ]; then
       if [ $SAVE ]; then
@@ -190,6 +199,7 @@ case "$work" in
     debug "attempting to list all mgmt-clusters"
     debug "attempting to list all tkcs by tns"
     [ $GREP ] && CSVGREP="csvgrep -c $COLUMN -m $GREP" || CSVGREP=cat
+    [ $REGEX ] && CSVGREP="csvgrep -c $COLUMN -r $REGEX"
     [ $GREPNAMES ] && CSVGREP="csvgrep -n"
     if [ $MKCSV ]; then
       if [ $SAVE ]; then
