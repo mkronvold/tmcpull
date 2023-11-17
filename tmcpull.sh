@@ -23,7 +23,9 @@ mktmps
 CSVLOOK=cat
 CSVGREP=cat
 CSVCUT=$(which csvcut || die "csvkit not found.  Install with: sudo pip install csvkit" )
+GREPNAMES=
 GREP=
+COLUMN=1
 work=
 DRYRUN=
 MKCSV=
@@ -49,11 +51,24 @@ do
     "--break" ) BREAKPOINT=1;;
     "--tkr" ) work=listtkr ;;
     "--tkrcount" ) work=counttkr ;;
-    "--tns" ) work=listtns ;;
+    "--tns" )
+      work=listtns
+      COLUMN=2 ;;
     "--clusterdetails"|"--clusters"|"--tkc" ) work=listtkc ;;
     "--tkg"|"--mgmt"|"--management" ) work=listmgmt ;;
     "--workspaces"|"--wks" ) work=listworkspaces ;;
     "--unhealthy" ) work=unhealthy ;;
+    "-n"|"--names"|"--columns" )
+      GREPNAMES=1
+      MKCSV=1
+      ;;
+    "--grep="* )
+      GREP="${opt#*=}"
+      MKCSV=1
+      ;;
+    "--column="* )
+      COLUMN="${opt#*=}"
+      ;;
     "--dev"|"--rnd"|"--development" ) GREP=dev ;;
     "--stg"|"--staging" ) GREP=stg ;;
     "--prod"|"--production" ) GREP=prod ;;
@@ -61,34 +76,42 @@ do
     "--tnsdev" )
       MKCSV=1
       GREP=dev
+      COLUMN=2
       work=listtns ;;
     "--tnsstg" )
       MKCSV=1
       GREP=stg
+      COLUMN=2
       work=listtns ;;
     "--tnsprod" )
       MKCSV=1
       GREP=prod
+      COLUMN=2
       work=listtns ;;
     "--tnsdr" )
       MKCSV=1
       GREP=dr
+      COLUMN=2
       work=listtns ;;
     "--tkcdev" )
       MKCSV=1
       GREP=dev
+      COLUMN=1
       work=listtkc ;;
     "--tkcstg" )
       MKCSV=1
       GREP=stg
+      COLUMN=1
       work=listtkc ;;
     "--tkcprod" )
       MKCSV=1
       GREP=prod
+      COLUMN=1
       work=listtkc ;;
     "--tkcdr" )
       MKCSV=1
       GREP=dr
+      COLUMN=1
       work=listtkc ;;
     "--ls="* )
       work=ls
@@ -111,7 +134,8 @@ debug "tmp[1]=${tmp[1]}"
 case "$work" in
   "listtkr" )
     debug "attempting to list tkrs of all tkcs"
-    [ $GREP ] && CSVGREP=csvgrep -c 1 -m $GREP || CSVGREP=cat
+    [ $GREP ] && CSVGREP="csvgrep -c $COLUMN -m $GREP" || CSVGREP=cat
+    [ $GREPNAMES ] && CSVGREP="csvgrep -n"
     if [ $MKCSV ]; then
       if [ $SAVE ]; then
         echo "clustername,distribution" > $SAVEFILE-$(date +'%Y-%m-%d_%H-%M-%S').csv
@@ -126,12 +150,13 @@ case "$work" in
     ;;
   "counttkr" )
     debug "attempting to count tkrs of all tkcs"
-    [ $GREP ] && CSVGREP="csvgrep -c 1 -m $GREP" || CSVGREP=cat
+    [ $GREP ] && CSVGREP="csvgrep -c $COLUMN -m $GREP" || CSVGREP=cat
     tanzu mission-control cluster list -o json | jq -r '.clusters[] | "\(.fullName.name) \(.spec.tkgServiceVsphere.distribution.version)"' | awk -F+ '{print $1}' | sed -e 's/\ /,/g' | $CSVGREP | csvstat -c 2 --freq --freq-count 25 | jq | sort | grep :
     ;;
   "listtkc" )
     debug "attempting to list tkc details"
-    [ $GREP ] && CSVGREP="csvgrep -c 1 -m $GREP" || CSVGREP=cat
+    [ $GREP ] && CSVGREP="csvgrep -c $COLUMN -m $GREP" || CSVGREP=cat
+    [ $GREPNAMES ] && CSVGREP="csvgrep -n"
     if [ $MKCSV ]; then
       if [ $SAVE ]; then
         echo "clustername,memorytotal,memorypercent,cputotal,cpupercent,nodecount,health,message" > $SAVEFILE-$(date +'%Y-%m-%d_%H-%M-%S').csv
@@ -146,7 +171,8 @@ case "$work" in
     ;;
   "listtns" )
     debug "attempting to list all tns by tkc"
-    [ $GREP ] && CSVGREP="csvgrep -c 2 -m $GREP" || CSVGREP=cat
+    [ $GREP ] && CSVGREP="csvgrep -c $COLUMN -m $GREP" || CSVGREP=cat
+    [ $GREPNAMES ] && CSVGREP="csvgrep -n"
     if [ $MKCSV ]; then
       if [ $SAVE ]; then
         ( echo "namespace,clustername,workspace,mgmtcluster" ;
@@ -163,7 +189,8 @@ case "$work" in
   "listmgmt" )
     debug "attempting to list all mgmt-clusters"
     debug "attempting to list all tkcs by tns"
-    [ $GREP ] && CSVGREP="csvgrep -c 1 -m $GREP" || CSVGREP=cat
+    [ $GREP ] && CSVGREP="csvgrep -c $COLUMN -m $GREP" || CSVGREP=cat
+    [ $GREPNAMES ] && CSVGREP="csvgrep -n"
     if [ $MKCSV ]; then
       if [ $SAVE ]; then
         echo "fullName,ClusterGroup,health,READYmessage" > $SAVEFILE-$(date +'%Y-%m-%d_%H-%M-%S').csv
