@@ -140,15 +140,15 @@ case "$work" in
   "listtkr" )
     debug "attempting to list tkrs of all tkcs"
     [ $GREP ] && CSVGREP="csvgrep -c $COLUMN -m $GREP" || CSVGREP=cat
-    [ $REGEX ] && CSVGREP="csvgrep -c $COLUMN -r $REGEX"
+    [ $REGEX ] && CSVREGEX="csvgrep -c $COLUMN -r $REGEX" || CSVREGEX=cat
     [ $GREPNAMES ] && CSVGREP="csvgrep -n"
     if [ $MKCSV ]; then
       if [ $SAVE ]; then
         echo "clustername,distribution" > $SAVEFILE-$(date +'%Y-%m-%d_%H-%M-%S').csv
-        tanzu mission-control cluster list -o json | jq -r '.clusters[] | "\(.fullName.name) \(.spec.tkgServiceVsphere.distribution.version)"' | awk -F+ '{print $1}' | $CSVGREP | csvsort -c 2 | sed -e 's/\ /,/g' >> $SAVEFILE-$(date +'%Y-%m-%d_%H-%M-%S').csv
+        tanzu mission-control cluster list -o json | jq -r '.clusters[] | "\(.fullName.name) \(.spec.tkgServiceVsphere.distribution.version)"' | awk -F+ '{print $1}' | $CSVGREP | $CSVREGEX | csvsort -c 2 | sed -e 's/\ /,/g' >> $SAVEFILE-$(date +'%Y-%m-%d_%H-%M-%S').csv
       else
         ( echo "clustername,distribution" ;
-        tanzu mission-control cluster list -o json | jq -r '.clusters[] | "\(.fullName.name) \(.spec.tkgServiceVsphere.distribution.version)"' | awk -F+ '{print $1}' | sed -e 's/\ /,/g' ) | $CSVGREP | csvsort -c 2 | $CSVLOOK
+        tanzu mission-control cluster list -o json | jq -r '.clusters[] | "\(.fullName.name) \(.spec.tkgServiceVsphere.distribution.version)"' | awk -F+ '{print $1}' | sed -e 's/\ /,/g' ) | $CSVGREP | $CSVREGEX | csvsort -c 2 | $CSVLOOK
       fi
     else
       tanzu mission-control cluster list -o json | jq -r '.clusters[] | "\(.fullName.name) \(.spec.tkgServiceVsphere.distribution.version)"' | awk -F+ '{print $1}'
@@ -157,13 +157,13 @@ case "$work" in
   "counttkr" )
     debug "attempting to count tkrs of all tkcs"
     [ $GREP ] && CSVGREP="csvgrep -c $COLUMN -m $GREP" || CSVGREP=cat
-    [ $REGEX ] && CSVGREP="csvgrep -c $COLUMN -r $REGEX"
-    tanzu mission-control cluster list -o json | jq -r '.clusters[] | "\(.fullName.name) \(.spec.tkgServiceVsphere.distribution.version)"' | awk -F+ '{print $1}' | sed -e 's/\ /,/g' | $CSVGREP | csvstat -c 2 --freq --freq-count 25 | jq | sort | grep :
+    [ $REGEX ] && CSVREGEX="csvgrep -c $COLUMN -r $REGEX" || CSVREGEX=cat
+    tanzu mission-control cluster list -o json | jq -r '.clusters[] | "\(.fullName.name) \(.spec.tkgServiceVsphere.distribution.version)"' | awk -F+ '{print $1}' | sed -e 's/\ /,/g' | $CSVGREP | $CSVREGEX | csvstat -c 2 --freq --freq-count 25 | jq | sort | grep :
     ;;
   "listtkc" )
     debug "attempting to list tkc details"
     [ $GREP ] && CSVGREP="csvgrep -c $COLUMN -m $GREP" || CSVGREP=cat
-    [ $REGEX ] && CSVGREP="csvgrep -c $COLUMN -r $REGEX"
+    [ $REGEX ] && CSVREGEX="csvgrep -c $COLUMN -r $REGEX" || CSVREGEX=cat
     [ $GREPNAMES ] && CSVGREP="csvgrep -n"
     if [ $MKCSV ]; then
       if [ $SAVE ]; then
@@ -171,7 +171,7 @@ case "$work" in
         tanzu mission-control cluster list -o json | jq -r '.clusters[] | "\(.fullName.name),\(.status.allocatedMemory.allocatable),\(.status.allocatedMemory.allocatedPercentage),\(.status.allocatedCpu.allocatable),\(.status.allocatedCpu.allocatedPercentage),\(.status.nodeCount),\(.status.health),\(.status.healthDetails.message)"' | $CSVGREP >> $SAVEFILE-$(date +'%Y-%m-%d_%H-%M-%S').csv
       else
         ( echo "clustername,memorytotal,memorypercent,cputotal,cpupercent,nodecount,health,message" ;
-        tanzu mission-control cluster list -o json | jq -r '.clusters[] | "\(.fullName.name),\(.status.allocatedMemory.allocatable),\(.status.allocatedMemory.allocatedPercentage),\(.status.allocatedCpu.allocatable),\(.status.allocatedCpu.allocatedPercentage),\(.status.nodeCount),\(.status.health),\(.status.healthDetails.message)"' ) | $CSVGREP | $CSVLOOK 2> /dev/null
+        tanzu mission-control cluster list -o json | jq -r '.clusters[] | "\(.fullName.name),\(.status.allocatedMemory.allocatable),\(.status.allocatedMemory.allocatedPercentage),\(.status.allocatedCpu.allocatable),\(.status.allocatedCpu.allocatedPercentage),\(.status.nodeCount),\(.status.health),\(.status.healthDetails.message)"' ) | $CSVGREP | $CSVREGEX | $CSVLOOK 2> /dev/null
       fi
     else
       tanzu mission-control cluster list -o json | jq -r '.clusters[] | "\(.fullName.name) \(.status.allocatedMemory.allocatable) \(.status.allocatedMemory.allocatedPercentage) \(.status.allocatedCpu.allocatable) \(.status.allocatedCpu.allocatedPercentage) \(.status.nodeCount) \(.status.health) \(.status.healthDetails.message)"'
@@ -180,34 +180,34 @@ case "$work" in
   "listtns" )
     debug "attempting to list all tns by tkc"
     [ $GREP ] && CSVGREP="csvgrep -c $COLUMN -m $GREP" || CSVGREP=cat
-    [ $REGEX ] && CSVGREP="csvgrep -c $COLUMN -r $REGEX"
+    [ $REGEX ] && CSVREGEX="csvgrep -c $COLUMN -r $REGEX" || CSVREGEX=cat
     [ $GREPNAMES ] && CSVGREP="csvgrep -n"
     if [ $MKCSV ]; then
       if [ $SAVE ]; then
         ( echo "namespace,clustername,workspace,mgmtcluster" ;
-        tanzu mission-control cluster namespace list -o json | jq -r '.namespaces[] | "\(.fullName.name),\(.fullName.clusterName),\(.spec.workspaceName),\(.fullName.managementClusterName)"' ) | $CSVGREP | csvsort -c 4,2,3,1 > $SAVEFILE-$(date +'%Y-%m-%d_%H-%M-%S').csv
+        tanzu mission-control cluster namespace list -o json | jq -r '.namespaces[] | "\(.fullName.name),\(.fullName.clusterName),\(.spec.workspaceName),\(.fullName.managementClusterName)"' ) | $CSVGREP | $CSVREGEX | csvsort -c 4,2,3,1 > $SAVEFILE-$(date +'%Y-%m-%d_%H-%M-%S').csv
       else
         ( echo "namespace,clustername,workspace,mgmtcluster" ;
-        tanzu mission-control cluster namespace list -o json | jq -r '.namespaces[] | "\(.fullName.name),\(.fullName.clusterName),\(.spec.workspaceName),\(.fullName.managementClusterName)"' ) | $CSVGREP | csvsort -c 4,2,3,1 | $CSVLOOK 2> /dev/null
+        tanzu mission-control cluster namespace list -o json | jq -r '.namespaces[] | "\(.fullName.name),\(.fullName.clusterName),\(.spec.workspaceName),\(.fullName.managementClusterName)"' ) | $CSVGREP | $CSVREGEX | csvsort -c 4,2,3,1 | $CSVLOOK 2> /dev/null
       fi
     else
       ( echo "namespace,clustername,workspace,mgmtcluster" ;
-      tanzu mission-control cluster namespace list -o json | jq -r '.namespaces[] | "\(.fullName.name),\(.fullName.clusterName),\(.spec.workspaceName),\(.fullName.managementClusterName)"' ) | $CSVGREP | csvsort -c 4,2,3,1
+      tanzu mission-control cluster namespace list -o json | jq -r '.namespaces[] | "\(.fullName.name),\(.fullName.clusterName),\(.spec.workspaceName),\(.fullName.managementClusterName)"' ) | $CSVGREP | $CSVREGEX | csvsort -c 4,2,3,1
     fi
     ;;
   "listmgmt" )
     debug "attempting to list all mgmt-clusters"
     debug "attempting to list all tkcs by tns"
     [ $GREP ] && CSVGREP="csvgrep -c $COLUMN -m $GREP" || CSVGREP=cat
-    [ $REGEX ] && CSVGREP="csvgrep -c $COLUMN -r $REGEX"
+    [ $REGEX ] && CSVREGEX="csvgrep -c $COLUMN -r $REGEX" || CSVREGEX=cat
     [ $GREPNAMES ] && CSVGREP="csvgrep -n"
     if [ $MKCSV ]; then
       if [ $SAVE ]; then
         echo "fullName,ClusterGroup,health,READYmessage" > $SAVEFILE-$(date +'%Y-%m-%d_%H-%M-%S').csv
-        tanzu mission-control management-cluster list -o json | jq -r '.managementClusters[] | "\(.fullName.name),\(.spec.defaultClusterGroup),\(.status.health),\(.status.conditions.READY.message)"' | $CSVGREP | grep connected >> $SAVEFILE-$(date +'%Y-%m-%d_%H-%M-%S').csv
+        tanzu mission-control management-cluster list -o json | jq -r '.managementClusters[] | "\(.fullName.name),\(.spec.defaultClusterGroup),\(.status.health),\(.status.conditions.READY.message)"' | $CSVGREP | $CSVREGEX | grep connected >> $SAVEFILE-$(date +'%Y-%m-%d_%H-%M-%S').csv
       else
         ( echo "fullName,ClusterGroup,health,READYmessage" ;
-        tanzu mission-control management-cluster list -o json | jq -r '.managementClusters[] | "\(.fullName.name),\(.spec.defaultClusterGroup),\(.status.health),\(.status.conditions.READY.message)"' | $CSVGREP | grep connected ) | $CSVLOOK 2> /dev/null
+        tanzu mission-control management-cluster list -o json | jq -r '.managementClusters[] | "\(.fullName.name),\(.spec.defaultClusterGroup),\(.status.health),\(.status.conditions.READY.message)"' | $CSVGREP | $CSVREGEX | grep connected ) | $CSVLOOK 2> /dev/null
       fi
     else
       tanzu mission-control management-cluster list
