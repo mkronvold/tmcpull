@@ -14,6 +14,9 @@ list all tkc's managed by tmc
 ./tmcpull.sh --tkr
 list all clusters by version
 
+./tmcpull.sh --tkcall
+list all tkc's managed by tmc with env column
+
 add --csv for csv output
 add --csv --look to convert csv to a table (that is markdown compatible)
 
