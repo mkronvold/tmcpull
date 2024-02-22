@@ -50,6 +50,10 @@ do
     "--test" ) DRYRUN=1;;
     "--debug" ) DEBUG=1 ;;
     "--break" ) BREAKPOINT=1;;
+    "--tkcall" )
+      GREP=
+      COLUMN=1
+      work=listtkcall ;;
     "--tkr" ) work=listtkr ;;
     "--tkrcount" ) work=counttkr ;;
     "--tns" )
@@ -176,6 +180,25 @@ case "$work" in
     else
       tanzu mission-control cluster list -o json | jq -r '.clusters[] | "\(.fullName.name) \(.status.allocatedMemory.allocatable) \(.status.allocatedMemory.allocatedPercentage) \(.status.allocatedCpu.allocatable) \(.status.allocatedCpu.allocatedPercentage) \(.status.nodeCount) \(.status.health) \(.status.healthDetails.message)"'
     fi
+    ;;
+  "listtkcall" )
+    debug "attempting to list all tkc details"
+    [ $GREP ] && CSVGREP="csvgrep -c $COLUMN -m $GREP" || CSVGREP=cat
+    [ $REGEX ] && CSVREGEX="csvgrep -c $COLUMN -r $REGEX" || CSVREGEX=cat
+    [ $GREPNAMES ] && CSVGREP="csvgrep -n"
+    echo "clustername,memorytotal,memorypercent,cputotal,cpupercent,nodecount,health,message" > .tmp-all.csv
+    tanzu mission-control cluster list -o json | jq -r '.clusters[] | "\(.fullName.name),\(.status.allocatedMemory.allocatable),\(.status.allocatedMemory.allocatedPercentage),\(.status.allocatedCpu.allocatable),\(.status.allocatedCpu.allocatedPercentage),\(.status.nodeCount),\(.status.health),\(.status.healthDetails.message)"' >> .tmp-all.csv
+    GREP=prod; cat .tmp-all.csv | csvgrep -c $COLUMN -m $GREP >> .tmp-${GREP}.csv
+    GREP=dr  ; cat .tmp-all.csv | csvgrep -c $COLUMN -m $GREP >> .tmp-${GREP}.csv
+    GREP=stg ; cat .tmp-all.csv | csvgrep -c $COLUMN -m $GREP >> .tmp-${GREP}.csv
+    GREP=dev ; cat .tmp-all.csv | csvgrep -c $COLUMN -m $GREP >> .tmp-${GREP}.csv
+
+    if [ $SAVE ]; then
+      csvstack -n env -g prod,dr,stg,dev .tmp-prod.csv .tmp-dr.csv .tmp-stg.csv .tmp-dev.csv > $SAVEFILE-$(date +'%Y-%m-%d_%H-%M-%S').csv
+    else #nosave
+      csvstack -n env -g prod,dr,stg,dev .tmp-prod.csv .tmp-dr.csv .tmp-stg.csv .tmp-dev.csv | $CSVREGEX | $CSVLOOK 2> /dev/null
+    fi
+    rm -f .tmp-prod.csv .tmp-dr.csv .tmp-stg.csv .tmp-dev.csv .tmp-all.csv
     ;;
   "listtns" )
     debug "attempting to list all tns by tkc"
