@@ -81,7 +81,9 @@ do
     "--dev"|"--rnd"|"--development" ) GREP=dev ;;
     "--stg"|"--staging" ) GREP=stg ;;
     "--prod"|"--production" ) GREP=prod ;;
-    "--dr" ) GREP=dr- ;;
+    "--dr" )
+      MKCSV=1
+      REGEX=den\|dr- ;;
     "--tnsdev" )
       MKCSV=1
       GREP=dev
@@ -119,7 +121,7 @@ do
       work=listtkc ;;
     "--tkcdr" )
       MKCSV=1
-      GREP=dr
+      REGEX=den\|dr-
       COLUMN=1
       work=listtkc ;;
     "--ls="* )
@@ -172,7 +174,7 @@ case "$work" in
     if [ $MKCSV ]; then
       if [ $SAVE ]; then
         echo "clustername,memorytotal,memorypercent,cputotal,cpupercent,nodecount,health,message" > $SAVEFILE-$(date +'%Y-%m-%d_%H-%M-%S').csv
-        tanzu mission-control cluster list -o json | jq -r '.clusters[] | "\(.fullName.name),\(.status.allocatedMemory.allocatable),\(.status.allocatedMemory.allocatedPercentage),\(.status.allocatedCpu.allocatable),\(.status.allocatedCpu.allocatedPercentage),\(.status.nodeCount),\(.status.health),\(.status.healthDetails.message)"' | $CSVGREP >> $SAVEFILE-$(date +'%Y-%m-%d_%H-%M-%S').csv
+        tanzu mission-control cluster list -o json | jq -r '.clusters[] | "\(.fullName.name),\(.status.allocatedMemory.allocatable),\(.status.allocatedMemory.allocatedPercentage),\(.status.allocatedCpu.allocatable),\(.status.allocatedCpu.allocatedPercentage),\(.status.nodeCount),\(.status.health),\(.status.healthDetails.message)"' | $CSVGREP | $CSVREGEX >> $SAVEFILE-$(date +'%Y-%m-%d_%H-%M-%S').csv
       else
         ( echo "clustername,memorytotal,memorypercent,cputotal,cpupercent,nodecount,health,message" ;
         tanzu mission-control cluster list -o json | jq -r '.clusters[] | "\(.fullName.name),\(.status.allocatedMemory.allocatable),\(.status.allocatedMemory.allocatedPercentage),\(.status.allocatedCpu.allocatable),\(.status.allocatedCpu.allocatedPercentage),\(.status.nodeCount),\(.status.health),\(.status.healthDetails.message)"' ) | $CSVGREP | $CSVREGEX | $CSVLOOK 2> /dev/null
@@ -189,7 +191,7 @@ case "$work" in
     echo "clustername,memorytotal,memorypercent,cputotal,cpupercent,nodecount,health,message" > .tmp-all.csv
     tanzu mission-control cluster list -o json | jq -r '.clusters[] | "\(.fullName.name),\(.status.allocatedMemory.allocatable),\(.status.allocatedMemory.allocatedPercentage),\(.status.allocatedCpu.allocatable),\(.status.allocatedCpu.allocatedPercentage),\(.status.nodeCount),\(.status.health),\(.status.healthDetails.message)"' >> .tmp-all.csv
     GREP=prod; cat .tmp-all.csv | csvgrep -c $COLUMN -m $GREP >> .tmp-${GREP}.csv
-    GREP=dr  ; cat .tmp-all.csv | csvgrep -c $COLUMN -m $GREP >> .tmp-${GREP}.csv
+    GREP=dr ; REGEX=den\|dr-  ; cat .tmp-all.csv | csvgrep -c $COLUMN -r $REGEX >> .tmp-${GREP}.csv
     GREP=stg ; cat .tmp-all.csv | csvgrep -c $COLUMN -m $GREP >> .tmp-${GREP}.csv
     GREP=dev ; cat .tmp-all.csv | csvgrep -c $COLUMN -m $GREP >> .tmp-${GREP}.csv
 
